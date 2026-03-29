@@ -1,0 +1,13 @@
+data/train_transaction.csv
+data/train_identity.csv
+data/*.csv
+models/
+*.pkl
+reports/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.vscode/
+Thumbs.db
+.DS_Store
