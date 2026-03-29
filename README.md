@@ -1,6 +1,5 @@
 # 🛡️ FraudSentinel AI
 ### Autonomous Multi-Agent Fraud Detection System
-**Pre-Final Year College Project**
 
 ---
 
@@ -322,4 +321,4 @@ TEST_SIZE         = 0.2    # 80% train, 20% test
 
 ---
 
-*Built as a Pre-Final Year College Project*
+
