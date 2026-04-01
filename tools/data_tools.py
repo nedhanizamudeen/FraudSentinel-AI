@@ -1,12 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-#  FraudSentinel AI — tools/data_tools.py
-#
-#  These are TOOLS that the EDA Agent and Feature Agent use.
-#  Think of tools as the "hands" of the agent.
-#  The agent (brain) decides WHAT to do.
-#  The tool (hands) actually DOES it.
-# ─────────────────────────────────────────────────────────────
-
 import pandas as pd
 import numpy as np
 import os

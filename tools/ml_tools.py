@@ -228,34 +228,72 @@ def split_data(df: pd.DataFrame) -> dict:
 # ══════════════════════════════════════════
 def apply_smote(X_train: pd.DataFrame, y_train: pd.Series) -> dict:
     """
-    Applies SMOTE (Synthetic Minority Oversampling Technique).
+    Applies SMOTE with a controlled 1:10 sampling ratio.
 
-    HOW SMOTE WORKS:
-    Instead of just duplicating fraud examples (which causes overfitting),
-    SMOTE creates SYNTHETIC (fake but realistic) fraud transactions
-    by interpolating between existing fraud examples.
+    WHY 1:10 INSTEAD OF 1:1?
+    The original dataset has a 1:27 fraud-to-legitimate ratio.
+    Applying full SMOTE (1:1) creates 4,39,372 synthetic fraud samples —
+    far too many synthetic samples which can introduce noise and distort
+    the decision boundary, potentially making both models perform similarly.
 
-    Example:
-      Before SMOTE: 500,000 non-fraud, 18,000 fraud
-      After  SMOTE: 500,000 non-fraud, 500,000 synthetic-fraud
-      Now the model trains on balanced data!
+    By targeting a 1:10 ratio (fraud:legitimate), we:
+      1. Reduce synthetic samples from 4,39,372 to ~29,060
+      2. Keep the training data more realistic
+      3. Allow XGBoost and LightGBM to differentiate more clearly
+      4. Better reflect real-world fraud distribution
+
+    Target ratio: 1 fraud for every 10 legitimate transactions
+    So Class 1 target = Class 0 count / 10
 
     NOTE: SMOTE is applied ONLY to training data, never to test data.
-    We want to evaluate on real, imbalanced data to simulate real world.
     """
-    print("  [MLTool] Applying SMOTE to balance training data...")
+    print("  [MLTool] Applying SMOTE with 1:10 ratio (fraud:legitimate)...")
     print(f"    Before: {y_train.value_counts().to_dict()}")
 
-    smote = SMOTE(random_state=RANDOM_STATE)
+    # Calculate target number of fraud samples for 1:10 ratio
+    # Class 0 count / 10 gives us the target for Class 1
+    class_0_count = int((y_train == 0).sum())
+    class_1_original = int((y_train == 1).sum())
+    class_1_target = class_0_count // 10  # 1:10 ratio
+
+    print(f"    Target ratio  : 1:10 (fraud:legitimate)")
+    print(f"    Class 0 count : {class_0_count:,}")
+    print(f"    Class 1 before: {class_1_original:,} (original)")
+    print(f"    Class 1 target: {class_1_target:,} (original + synthetic)")
+    print(f"    Synthetic to create: {class_1_target - class_1_original:,}")
+
+    # sampling_strategy = {class_label: desired_count_of_that_class}
+    # We tell SMOTE exactly how many Class 1 samples we want in total
+    sampling_strategy = {1: class_1_target}
+
+    smote = SMOTE(
+        sampling_strategy=sampling_strategy,
+        random_state=RANDOM_STATE
+    )
     X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
 
+    class_0_after = int((pd.Series(y_resampled) == 0).sum())
+    class_1_after = int((pd.Series(y_resampled) == 1).sum())
+    synthetic_created = class_1_after - class_1_original
+
     print(f"    After : {pd.Series(y_resampled).value_counts().to_dict()}")
+    print(f"    New ratio: 1:{class_0_after // class_1_after}")
 
     summary = (
-        f"SMOTE Applied:\n"
-        f"  Before: {y_train.sum():,} fraud / {(y_train==0).sum():,} non-fraud\n"
-        f"  After : {y_resampled.sum():,} fraud / {(y_resampled==0).sum():,} non-fraud\n"
-        f"  Training set now perfectly balanced!"
+        f"SMOTE Applied (1:10 Ratio Strategy):\n"
+        f"  Ratio Strategy  : 1 fraud per 10 legitimate (1:10)\n"
+        f"  ── BEFORE SMOTE ──\n"
+        f"  Class 0 (Legit) : {class_0_count:,} (original)\n"
+        f"  Class 1 (Fraud) : {class_1_original:,} (original)\n"
+        f"  Imbalance ratio : 1:{class_0_count // class_1_original}\n"
+        f"  ── AFTER SMOTE ──\n"
+        f"  Class 0 (Legit) : {class_0_after:,} (original, unchanged)\n"
+        f"  Class 1 (Fraud) : {class_1_after:,} total\n"
+        f"    → Original    : {class_1_original:,}\n"
+        f"    → Synthetic   : {synthetic_created:,}\n"
+        f"  New ratio       : 1:{class_0_after // class_1_after}\n"
+        f"  Total train rows: {class_0_after + class_1_after:,}\n"
+        f"  Benefit: Less synthetic data = more realistic training distribution"
     )
 
     return {

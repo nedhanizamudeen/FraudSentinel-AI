@@ -1,23 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-#  FraudSentinel AI — orchestrator/graph.py
-#
-#  THE ORCHESTRATOR (Master Controller)
-#
-#  WHAT IS THIS?
-#  LangGraph lets us define the FLOW between agents as a graph.
-#  A graph has NODES (agents) and EDGES (connections between them).
-#
-#  FLOW:
-#  EDA → Feature Engineering → Model Training → Evaluation
-#  ↑                                                  |
-#  └───────────── (if AUC too low, loop back) ────────┘
-#                                    ↓ (if AUC is good)
-#                             Decision Agent
-#
-#  The key feature: the conditional edge after Evaluation
-#  decides whether to retrain or move to Decision Agent.
-# ─────────────────────────────────────────────────────────────
-
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Any, Optional
 import pandas as pd
